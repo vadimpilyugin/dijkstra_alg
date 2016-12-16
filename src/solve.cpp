@@ -58,6 +58,7 @@ public:
 	void set_shortest_path(int _shp) { shortest_path = _shp; }
 	void get_visited() { return visited; }
 	void set_visited(bool _visited) { visited = _visited; }
+	Vertex *ptr() { return &self; }
 };
 
 class Edge
@@ -73,8 +74,9 @@ public:
 		note(start == end, "A cycle was added to graph! Did you really mean that?", Hash{ {"Vertex rank where the cycle was found", (*start).rank} });
 
 		// записываем в исток адрес текущего объекта - нового ребра
-		(*origin).add_edge(&self);	
+		(*origin).add_edge(self.ptr());	
 	}
+	Edge *ptr() { return &self; }
 };
 
 class Graph
@@ -91,29 +93,17 @@ class Graph
     		o.rank == rank;
 		});
 		// функция поиска возвращает итератор, поэтому *
-		return &(*result));
+		return (*result).ptr());
 	}
 	Vertex *get_next_vertex()
 	{
-		// сначала узнаем, чему равен минимум по расстояниям
-		int min = INFINITY;
-		{
-			auto min = std::min_element( vertices.begin(), vertices.end(),
-                             []( const Vertex &a, const Vertex &b )
-                             {
-                                 return a.get_shortest_path() < b.get_shortest_path();
-                             } ); 
-		}
-
 		// поиск вершины, которую еще не посетили и с минимальным весом
-		auto result = std::find_if(vertices.begin(), vertices.end(), [&](const Vertex & o) {
-    		o.get_visited() == false;
-		});
-		if(result == std::end(vertices))
-			return NOOBJECT;
-		else
-			// функция поиска возвращает итератор, поэтому *
-			return &(*result));
+		int min = INFINITY;
+		Vertex *result = NOOBJECT;
+		for(const auto &vertex: vertices)
+			if(!vertex.get_visited() && vertex.get_shortest_path() < min)
+				result = vertex.ptr();
+		return result;
 	}
 	bool vertex_exists(int rank)
 	{
@@ -129,7 +119,7 @@ class Graph
 			// записываем в массив саму вершину
 			vertices << Vertex(rank);
 			// возвращаем указатель на нее
-			return &vertices.back();
+			return vertices.back().ptr();
 		}
 		else
 			return vertex_pointer(rank);
@@ -139,7 +129,7 @@ class Graph
 		// записать новое ребро в массив
 		edges << Edge(start, finish, length);
 		// добавить указатель на ребро в стартовую вершину
-		(*start).add_edge(&edges.back());
+		(*start).add_edge(edges.back().ptr());
 	}
 public:
 	Graph() {}
