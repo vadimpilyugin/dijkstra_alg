@@ -1,6 +1,5 @@
 #include <stdio.h>
 
-#include "matrix.h"
 #include "params.h"
 
 int main(int argc, char **argv)

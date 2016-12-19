@@ -26,4 +26,4 @@ Input
 
 # Компиляция и запуск программы
 make all 1>/dev/null
-${BIN_DIR}/matrix_example
+${BIN_DIR}/solve
