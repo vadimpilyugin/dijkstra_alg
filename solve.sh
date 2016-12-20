@@ -25,5 +25,6 @@ const int show_all = $show_all;
 Input
 
 # Компиляция и запуск программы
-make all 1>/dev/null
+echo 'Building project...'
+make all 2>log_1.txt
 ${BIN_DIR}/solve

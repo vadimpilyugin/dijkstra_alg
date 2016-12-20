@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -O2 -g -Wall -std=c++0x
+CXXFLAGS = -O0 -g -Wall -std=c++0x
 
 # Strict compiler options
 CXXFLAGS += -Wfloat-equal -Wall
