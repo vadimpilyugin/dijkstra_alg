@@ -22,7 +22,7 @@ void assert(bool __expr, const char *__str__ = "", Hash params = Hash()) {
 
 void debug(bool __expr, const char *__str__ = "", Hash params = Hash()) {
 	if(__expr)	{
-		fprintf(stderr, "\x1b[1;32mDebugging: \x1b[0m");
+		fprintf(stderr, "\x1b[1;32mDebug: \x1b[0m");
 		fprintf(stderr, "\x1b[1;37m%s\x1b[0m\n", __str__);
 		for(const auto &param:params)
 			fprintf(stderr, "\t%s: \t%d\n", param.first, param.second);
@@ -62,6 +62,7 @@ class Vertex
 		assert(visited == false, "Trying to send message to a visited vertex", 
 			Hash{ {"Visited vertex", rank} , {"Sender", sender -> rank}, {"Message size", size}}
 		);
+		debug(true, "Received message", Hash{{"Sender", sender -> rank}, {"Message", size}, {"Shortest path", shortest_path}});
 		if(size < shortest_path)
 		{
 			shortest_path = size;
@@ -75,6 +76,7 @@ public:
 	void add_edge(Edge *_edge);
 	void send_messages();
 	void trace_path(int depth = 0);
+	bool is_incident(int rank);
 
 	int get_shortest_path() { return shortest_path; }
 	void set_shortest_path(int _shp) { shortest_path = _shp; }
@@ -111,7 +113,6 @@ void Vertex::add_edge(Edge *_edge)
 {
 	assert(_edge != NOOBJECT, "Attempt to assign NOOBJECT as an edge!", Hash{ {"Vertex rank", rank} });
 	const int edge_target_rank = _edge -> target -> rank;
-	debug(true, "Edge target rank", Hash {{"Rank", edge_target_rank}, {"Edges count", edges.size()}});
 	for(auto &edge: edges)
 		assert(
 			(edge -> target) -> rank != edge_target_rank, 
@@ -123,13 +124,16 @@ void Vertex::add_edge(Edge *_edge)
 }
 void Vertex::send_messages()
 {
+	visited = true;
 	if(edges.size() == 0)
 		return;
-	note(shortest_path == _INFINITY_, "Sending message of infinite length", Hash{ {"Length", shortest_path} });
+	note(shortest_path >= _INFINITY_, "Sending message of infinite length", Hash{ {"Length", shortest_path} });
 	for(auto &edge:edges)
 		if(!edge -> target -> get_visited())
+		{
+			debug(true, "Sending message", Hash{ {"Current vertex", rank}, {"To", edge -> target -> rank}, {"Message size", edge -> length + shortest_path} });
 			edge -> target -> receive_message(this, edge -> length + shortest_path);
-	visited = true;
+		}
 }
 void Vertex::trace_path(int depth)
 {
@@ -148,96 +152,150 @@ void Vertex::trace_path(int depth)
 		printf("v%d => ", rank);
 	}
 }
+bool Vertex::is_incident(int rank)
+{
+	for(auto &edge:edges)
+		if(edge -> target -> rank == rank)
+			return true;
+	return false;
+}
 
 class Graph
 {
-	vector<Vertex> vertices;
-	vector<Edge> edges;
+	Vertex **vertices;
+	Edge **edges;
+	int vertices_size, edges_size;
+	int vertices_cnt, edges_cnt;
 
 	Vertex *vertex_pointer(int rank)
 	{
 		assert(vertex_exists(rank), "Attempt to get a vertex that does not exists!", Hash{ {"Vertex rank", rank} });
 
-		// поиск вершины с номером rank
-		auto result = std::find_if(vertices.begin(), vertices.end(), [rank](Vertex &o) 
-		{
-    		return o.rank == rank; 
-    	});
-		// функция поиска возвращает итератор, поэтому *
-		return (*result).ptr();
+		Vertex *result = NOOBJECT;
+	 	for(int i = 0; i < vertices_cnt; i++)
+	 	{
+	 		if(vertices[i] -> rank == rank)
+	 		{
+	 			result = vertices[i];
+	 			break;
+	 		}
+	 	}
+	 	assert(result != NOOBJECT, "Vertex not found, while it exists!", Hash{ {"Rank", rank} });
+	 	return result;
+
 	}
-	Vertex *get_next_vertex()
+	bool vertex_exists(int rank)
+	{
+	 	Vertex *result = NOOBJECT;
+	 	for(int i = 0; i < vertices_cnt; i++)
+	 	{
+	 		if(vertices[i] -> rank == rank)
+	 		{
+	 			result = vertices[i];
+	 			break;
+	 		}
+	 	}
+	 	return result != NOOBJECT;
+	}
+	Vertex *get_next_vertex(bool check = false)
 	{
 		// поиск вершины, которую еще не посетили и с минимальным весом
 		int min = _INFINITY_;
 		Vertex *result = NOOBJECT;
-		for(auto &vertex: vertices)
-			if(!vertex.get_visited() && vertex.get_shortest_path() < min)
-				result = vertex.ptr();
-		return result;
-	}
-	bool vertex_exists(int rank)
-	{
-		auto result = std::find_if(vertices.begin(), vertices.end(), [rank](Vertex &o) 
+		for(int i = 0; i < vertices_cnt; i++)
+			if(!vertices[i] -> get_visited() && vertices[i] -> get_shortest_path() < min)
+			{
+				result = vertices[i];
+				min = result -> get_shortest_path();
+			}
+		if(result != NOOBJECT &&!check)
 		{
-    		return o.rank == rank; 
-    	});
-	 	return result != vertices.end();
+			note(min >= _INFINITY_, "Shortest path is infinite!", Hash{ {"Rank", result -> rank}, {"Shortest path", min} });
+			debug(true, "Got next vertex", Hash{{"Rank", result -> rank}, {"Shortest path", min}});
+		}
+		return result;
 	}
 	bool vertices_left()
 	{
-		return get_next_vertex() != NOOBJECT;
+		return get_next_vertex(true) != NOOBJECT;
 	}
 	Vertex *create_vertex(int rank)
 	{
-		refute(vertex_exists(rank), "Vertex already exists", Hash{ {"Vertex", rank} });
-		// записываем в массив саму вершину
-		vertices.push_back(Vertex(rank));
-		assert(vertices.back().ptr() -> get_edges().size() < _INFINITY_, "Too many edges!", 
-			Hash{{"Count", vertices.back().get_edges().size()}});
+		// Мы можем хотеть записать уже имеющююся вершину
+		// refute(vertex_exists(rank), "Vertex already exists", Hash{ {"Vertex", rank} });
 
-		// возвращаем указатель на нее
-		return vertices.back().ptr();
+		if(vertex_exists(rank))
+			return vertex_pointer(rank);
+		else
+		{
+			Vertex *a = new Vertex(rank);
+			vertices[vertices_cnt++] = a;
+			assert(vertices[vertices_cnt-1] -> get_edges().size() < _INFINITY_, "Too many edges!", 
+				Hash{ {"Count", vertices[vertices_cnt-1] -> get_edges().size()} });
+			return a;
+		}
+
 	}
 	Edge *create_edge(Vertex *start, Vertex *finish, int length)
 	{
-		// записать новое ребро в массив
-		edges.push_back(Edge(start, finish, length));
 
-		// добавить указатель на ребро в стартовую вершину
-		start -> add_edge(edges.back().ptr());
-		return edges.back().ptr();
+		Edge *a = new Edge(start, finish, length);
+		edges[edges_cnt++] = a;
+		start -> add_edge(edges[edges_cnt-1]);
+		return a;
 	}
 	void add_path(int origin_index, int target_index, int edge_length)
 	{
+		if(vertex_exists(origin_index) && vertex_exists(target_index) && !oriented)
+			refute(vertex_pointer(origin_index) -> is_incident(target_index), "Trying to add multiple edges", 
+				Hash{ {"Origin", origin_index}, {"Target", target_index}, {"Length", edge_length} }
+			);
 
-		refute(vertex_exists(origin_index) && vertex_exists(target_index) && !oriented, "Trying to add multiple edges", 
-			Hash{ {"Origin", origin_index}, {"Target", target_index}, {"Length", edge_length} }
-		);
 		Vertex *origin = create_vertex(origin_index);
 		Vertex *target = create_vertex(target_index);
-		debug(true, "Created vertices", Hash{ {"Origin", origin_index}, {"Target", target_index} });
+		debug(true, "Created vertices", Hash{ {"Origin", origin -> rank}, {"Target", target -> rank}, {"Number of vertices", vertices_cnt}});
 		// (*origin).add_edge() - должен сделать внутри сам
 		Edge *edge = create_edge(origin, target, edge_length);
-		debug(true, "Helloworld");
 		debug(true, "Created edge", 
-			Hash{ {"Origin", edge -> origin -> rank}, {"Target", edge -> target -> rank} , {"Length", edge -> length}}
+			Hash{ {"Origin", edge -> origin -> rank}, {"Target", edge -> target -> rank} , {"Length", edge -> length}, {"Number of edges", edges_cnt}}
 		);
-		if(!oriented)
-			edge = create_edge(target, origin, edge_length);
+		// if(!oriented)
+		// 	edge = create_edge(target, origin, edge_length);
 	}
 public:
 	Graph() 
 	{
 		assert(G.size() >= 3, "Graph is empty!");
 		assert(G.size() % 3 == 0, "Wrong graph format!");
+
+		vertices_size = oriented ? G.size()/3 * 2 : G.size()/3 * 4;
+		edges_size = oriented ? G.size()/3 : G.size()/3 * 2;	
+		vertices_cnt = 0;
+		edges_cnt = 0;
+
+		vertices = new Vertex* [vertices_size];
+		edges = new Edge* [edges_size];
 		for(int i = 0; i < G.size(); i+=3)
 		{
 			int start = G[i], finish = G[i+1], length = G[i+2];
 			debug(true, "Adding new path", Hash{ {"Origin", start}, {"Target", finish} , {"Length", length}});
 			add_path(start, finish, length);
-
+			if(!oriented)
+			{
+				start = G[i+1], finish = G[i], length = G[i+2];
+				debug(true, "Adding new path", Hash{ {"Origin", start}, {"Target", finish} , {"Length", length}});
+				add_path(start, finish, length);
+			}
 		}
+	}
+	~Graph()
+	{
+		for(int i = 0; i < vertices_cnt; i++)
+			delete vertices[i];
+		delete [] vertices;
+		for(int i = 0; i < edges_cnt; i++)
+			delete edges[i];
+		delete [] edges;
 	}
 	void dijkstra_alg(int origin, int target)
 	{
@@ -247,19 +305,18 @@ public:
 			printf("v%d ==> v%d - 0", origin, origin);
 			return;
 		}
-		Vertex *current_vertex = vertex_pointer(origin);
-		current_vertex -> set_shortest_path(0);
+		Vertex *current_vertex;
+		vertex_pointer(origin) -> set_shortest_path(0);
 		while(vertices_left())
 		{
-			current_vertex -> send_messages();
 			current_vertex = get_next_vertex();
+			current_vertex -> send_messages();
 		}
-		if(show_all)
-			for(auto &vertex:vertices)
-				if(vertex.rank != origin && vertex.rank != target)
-					vertex.trace_path();
+		for(int i = 0; i < vertices_cnt; i++)
+			if(vertices[i] -> rank != origin && vertices[i] -> rank != target)
+				vertices[i] -> trace_path();
 		{
-			printf("\n\nResult:\n");
+			printf("Result:\n");
 			vertex_pointer(target) -> trace_path();
 		}
 	}
