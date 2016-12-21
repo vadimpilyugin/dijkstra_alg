@@ -7,6 +7,7 @@
 #define _INFINITY_ 30000
 #define INITIAL nullptr
 #define NOOBJECT nullptr
+#define _DEBUG_ 0
 
 typedef std::map<const char *, int> Hash;
 
@@ -21,7 +22,7 @@ void assert(bool __expr, const char *__str__ = "", Hash params = Hash()) {
 }
 
 void debug(bool __expr, const char *__str__ = "", Hash params = Hash()) {
-	if(__expr)	{
+	if(__expr && _DEBUG_)	{
 		fprintf(stderr, "\x1b[1;32mDebug: \x1b[0m");
 		fprintf(stderr, "\x1b[1;37m%s\x1b[0m\n", __str__);
 		for(const auto &param:params)
