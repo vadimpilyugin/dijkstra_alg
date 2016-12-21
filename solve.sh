@@ -26,5 +26,5 @@ Input
 
 # Компиляция и запуск программы
 echo 'Building project...'
-make all 2>log_1.txt
+make all
 ${BIN_DIR}/solve
