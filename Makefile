@@ -57,9 +57,6 @@ deps.mk:
 $(BIN_DIR)/solve: $(OBJ_DIR)/solve.o
 	$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@ $(LDFLAGS)
 
-$(BIN_DIR)/matrix_example: $(OBJ_DIR)/matrix_example.o
-	$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@ $(LDFLAGS)
-
 # Pattern for generating dependency description files (*.d)
 $(DEP_DIR)/%.d: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -E -MM -MT $(call src_to_obj, $<) -MT $@ -MF $@ $<

@@ -27,4 +27,5 @@ Input
 # Компиляция и запуск программы
 echo 'Building project...'
 make all
+echo 'Done'
 ${BIN_DIR}/solve
