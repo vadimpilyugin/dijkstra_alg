@@ -26,6 +26,8 @@ Input
 
 # Компиляция и запуск программы
 echo 'Building project...'
-make all
-echo 'Done'
+make all 2>&1 1>/dev/null
+clear
+echo '================ Dijkstra Algorithm v1.0 ====================='
 ${BIN_DIR}/solve
+echo '=============================================================='

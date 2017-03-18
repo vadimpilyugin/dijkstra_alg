@@ -37,7 +37,7 @@ CXXFILES := $(wildcard $(SRC_DIR)/*.cpp)
 
 # Alias to make all targets.
 .PHONY: all
-all: $(BIN_DIR)/solve $(BIN_DIR)/matrix_example
+all: $(BIN_DIR)/solve
 
 # Suppress makefile rebuilding.
 Makefile: ;
