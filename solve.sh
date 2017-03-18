@@ -25,5 +25,9 @@ const int show_all = $show_all;
 Input
 
 # Компиляция и запуск программы
-make all 1>/dev/null
-${BIN_DIR}/matrix_example
+echo 'Building project...'
+make all 2>&1 1>/dev/null
+clear
+echo '================ Dijkstra Algorithm v1.0 ====================='
+${BIN_DIR}/solve
+echo '=============================================================='

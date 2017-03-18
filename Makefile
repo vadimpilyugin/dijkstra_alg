@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -O2 -g -Wall -std=c++0x
+CXXFLAGS = -O0 -g -Wall -std=c++0x
 
 # Strict compiler options
 CXXFLAGS += -Wfloat-equal -Wall
@@ -37,7 +37,7 @@ CXXFILES := $(wildcard $(SRC_DIR)/*.cpp)
 
 # Alias to make all targets.
 .PHONY: all
-all: $(BIN_DIR)/solve $(BIN_DIR)/matrix_example
+all: $(BIN_DIR)/solve
 
 # Suppress makefile rebuilding.
 Makefile: ;
@@ -55,9 +55,6 @@ deps.mk:
 
 # Rules for compiling targets
 $(BIN_DIR)/solve: $(OBJ_DIR)/solve.o
-	$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@ $(LDFLAGS)
-
-$(BIN_DIR)/matrix_example: $(OBJ_DIR)/matrix_example.o
 	$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@ $(LDFLAGS)
 
 # Pattern for generating dependency description files (*.d)
